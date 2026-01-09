@@ -44,18 +44,26 @@ const SwaggerDocs = ({ spec, url }: SwaggerProps) => {
               // 1. Split path
               const segments = pathKey.split("/").filter(Boolean);
 
-              // 2. Find version index (v1, v2, etc)
+              // 2. Check for {userid} or similar patterns
+              const userIdIndex = segments.findIndex((s) =>
+                /^{user.*id}$/i.test(s)
+              );
+
+              // 3. Find version index (v1, v2, etc)
               const versionIndex = segments.findIndex((s) =>
                 /^v[0-9]+$/i.test(s)
               );
 
               let groupName = "Other";
 
-              if (versionIndex !== -1 && segments.length > versionIndex + 1) {
-                // 3. Take the segment AFTER version
+              if (userIdIndex !== -1 && segments.length > userIdIndex + 1) {
+                // Priority 1: Field after {userid}
+                groupName = segments[userIdIndex + 1];
+              } else if (versionIndex !== -1 && segments.length > versionIndex + 1) {
+                // Priority 2: Field after version
                 groupName = segments[versionIndex + 1];
               } else if (segments.length > 0) {
-                // Fallback: If no version, use first segment (e.g. 'enablev2api')
+                // Priority 3: First segment
                 groupName = segments[0];
               }
 
