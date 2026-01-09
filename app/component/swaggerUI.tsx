@@ -17,6 +17,8 @@ const SwaggerDocs = ({ spec, url }: SwaggerProps) => {
   const [isDark, setIsDark] = useState(false);
 
   const [activeTab, setActiveTab] = useState("Billing");
+  const [activeVersion, setActiveVersion] = useState("Billing");
+  const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const apiUrls: Record<string, string> = {
     Billing: "/api/spec/billing",
@@ -38,6 +40,37 @@ const SwaggerDocs = ({ spec, url }: SwaggerProps) => {
 
           if (data.paths) {
             Object.keys(data.paths).forEach((pathKey) => {
+              // 0. Filter by Version (Billing Tab Only)
+              if (activeTab === "Billing") {
+                const isV1 = pathKey.includes("/v1/");
+                const isV2 = pathKey.includes("/v2/");
+
+                // Rule: "only the billing with v1 and v2 should be there remove the old one"
+                // 1. Remove anything that isn't v1 or v2
+                if (!isV1 && !isV2) {
+                  delete data.paths[pathKey];
+                  return;
+                }
+
+                // 2. Apply Specific Version Filter
+                if (activeVersion === "v1" && !isV1) {
+                  delete data.paths[pathKey];
+                  return;
+                }
+                if (activeVersion === "v2" && !isV2) {
+                  delete data.paths[pathKey];
+                  return;
+                }
+              }
+
+              // 0.5 Filter by Search Term
+              if (searchTerm) {
+                if (!pathKey.toLowerCase().includes(searchTerm.toLowerCase())) {
+                  delete data.paths[pathKey];
+                  return;
+                }
+              }
+
               const pathItem = data.paths[pathKey];
 
               // Logic: /{serviceName}/{version}/{ResourceName}/...
@@ -103,6 +136,11 @@ const SwaggerDocs = ({ spec, url }: SwaggerProps) => {
         .catch((err) => console.error("Failed to load spec", err))
         .finally(() => setIsLoading(false));
     }
+  }, [activeTab, activeVersion, searchTerm]); // Add searchTerm dependency
+
+  // Reset version filter when tab changes
+  useEffect(() => {
+    setActiveVersion("Billing");
   }, [activeTab]);
 
   const scrollToTag = (tag: string) => {
@@ -127,7 +165,14 @@ const SwaggerDocs = ({ spec, url }: SwaggerProps) => {
     <div className={isDark ? "dark" : ""}>
       <div className="min-h-screen bg-gray-50 dark:bg-[#0f172a] text-gray-900 dark:text-gray-100 font-sans transition-colors duration-300">
         {/* HEADER */}
-        <Header activeTab={activeTab} setActiveTab={setActiveTab} />
+        <Header
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          activeVersion={activeVersion}
+          setActiveVersion={setActiveVersion}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+        />
 
         {/* MAIN CONTENT AREA */}
         {isLoading ? (
